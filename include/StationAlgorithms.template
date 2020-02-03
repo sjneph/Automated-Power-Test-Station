@@ -1,0 +1,145 @@
+#include "Assert.h"
+#include "SingletonType.h"
+#include "SPTSException.h"
+
+//=====================================================================================//
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Changes <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<//
+//=====================================================================================//
+/* 
+   ==============
+   05/01/05, sjn,
+   ==============
+     Added CheckVoutsAtInhibit()'s new template implementation.
+*/
+//=====================================================================================//
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Changes <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<//
+//=====================================================================================//
+
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+namespace { // unnamed
+    typedef StationExceptionTypes::ContainerState ContainerState;
+} // unnamed
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+namespace SpacePowerTestStation {
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+//==============
+// CheckVouts()
+//==============
+template <typename ExcType>
+void CheckVouts(const ProgramTypes::PercentType& tolerance) {
+	// Typedefs
+	typedef ProgramTypes::MType MType;
+	typedef ProgramTypes::MTypeContainer MContainer;
+	typedef ProgramTypes::MTypeContainer DContainer;
+	typedef DContainer::const_iterator it1;
+	typedef MContainer::const_iterator it2;
+
+  	// Variable declarations 
+	MContainer vouts, voutsLow, voutsHigh;
+	DContainer nominals;
+
+	// Measure current Vout(s) and grab nominal Vout value(s)
+	MeasureVoutDC(vouts, ConverterOutput::ALL, false);
+    nominals = SingletonType<Converter>::Instance()->Vouts();
+	Assert<ContainerState>(nominals.size() == vouts.size(), "Check Vouts");
+
+	// Calculate allowable +/- tolerances for all Vouts per 'tolerance'
+	DContainer::iterator dStart = nominals.begin(), dStop = nominals.end();
+	MType abs1, tmp, zero = static_cast<MType>(0);
+	while ( dStart != dStop ) {
+		tmp  = absolute(*dStart);
+        tmp *= static_cast<MType>(tolerance.Value());
+        tmp /= static_cast<MType>(100);
+        voutsHigh.push_back(*dStart + tmp);
+        voutsLow.push_back(*dStart - tmp);
+		++dStart;
+	} // while
+
+	// See if all Vouts are within their tolerances
+	std::pair<it1, it2> TooLow, TooHigh;
+	TooLow = std::mismatch(vouts.begin(), vouts.end(), voutsLow.begin(), 
+		                    std::greater_equal<MType>());
+	TooHigh = std::mismatch(vouts.begin(), vouts.end(), voutsHigh.begin(),
+		                    std::less_equal<MType>());
+
+    // Deal with out of tolerance voltages
+	long cntr = 1;
+	it1 newmarker = vouts.begin();
+	if ( TooLow.first != vouts.end() ) {  // At least one Vout is too Low
+		while (  newmarker++ != TooLow.first ) 
+            ++cntr;
+        std::string error = "Vout" + convert<std::string>(cntr);
+        error += " : ";
+        error += convert<std::string>(vouts[cntr-1]);
+        throw(ExcType(error));
+	}
+	else if ( TooHigh.first != vouts.end() ) { // At least one Vout is too High
+		while ( newmarker++ != TooHigh.first ) 
+            ++cntr;
+        std::string error = "Vout" + convert<std::string>(cntr) + " : ";
+        error += vouts[cntr-1].ValueStr();
+        error += "V";
+        throw(ExcType(error));
+	}
+}
+
+//=======================
+// CheckVoutsAtInhibit()
+//=======================
+template<typename ExcType>
+void CheckVoutsAtInhibit() {
+    typedef ProgramTypes::MType MType;
+    SPTS* stationPtr = SingletonType<SPTS>::Instance();
+    Converter* dutPtr = SingletonType<Converter>::Instance();
+    stationPtr->StrongInhibit(ON);
+    ProgramTypes::MTypeContainer idealVouts = dutPtr->Vouts();
+    MType badValue = 1; // arbitrary - bad output voltage
+    ProgramTypes::MTypeContainer realVouts;
+    MeasureVoutDC(realVouts, ConverterOutput::ALL, false);
+    ProgramTypes::MTypeContainer::iterator i = realVouts.begin(), j = realVouts.end();
+    while ( i != j ) {
+        *i = absolute(*i);
+        ++i;
+    } // while
+    ProgramTypes::MTypeContainer::iterator find;
+    find = std::find_if(realVouts.begin(), realVouts.end(),
+                        std::bind2nd(std::greater<MType>(), badValue));
+    Assert<ExcType>(find == realVouts.end(), "Bad Inhibit");
+
+    // Ensure no foldback of the DUT
+    stationPtr->SafeInhibit(OFF);
+}
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+} // namespace SpacePowerTestStation
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+
+/*---------------------------------------------------------//
+       "Hardcoded types are to generic code what magic 
+        constants are to regular code" 
+                                 - Andrei Alexandrescu 
+//---------------------------------------------------------*/

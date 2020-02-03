@@ -1,0 +1,73 @@
+// Implementation File
+
+// Files included
+#include "StandardFiles.h"
+
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+namespace Conversion { // unnamed
+	
+/*
+	// Generic Conversion Algorithm
+	//  Depends on Conversion Constructors and/or Conversion Functions to/from
+	//  T and U
+	template <typename T, typename U>
+	T toconvert(Type2Type<T>, U from)
+	{
+		return(static_cast<T>(from));
+	}
+    todo : this one causes overload resolution problems --> look into why 
+*/
+
+	// Conversion from any type that has overloaded << operator to stringstream
+	// to type string
+	template <typename U>
+	std::string toconvert(Type2Type<std::string>, U from) {
+		std::stringstream f;
+		f << from;
+		return(f.str());
+	}
+
+	// Conversion from any type that has overloaded << operator to stringstream
+	// to type const string
+	template <typename U>
+	std::string toconvert(Type2Type<const std::string>, U from) {
+	  std::stringstream f;
+	  f << from;
+	  return(f.str());
+	} 
+
+	// Conversion from string type to any type with overloaded >> from stringstream
+	// (e.g.; long, double, int, etc.)
+	template <typename U>
+	U toconvert(Type2Type<U>, const std::string& from) {
+	  U tortn;
+	  std::stringstream f(from);
+	  f >> tortn;
+	  return(tortn);
+	}
+
+} // End unnamed Conversion 
+
+
+// implementation of convert() template function located 
+//  in "Generic Algorithms.h" 
+template <typename RtnType, typename From>
+RtnType convert(From from) {
+   return(Conversion::toconvert(Type2Type<RtnType>(), from));
+}
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+/*---------------------------------------------------------//
+       "Hardcoded types are to generic code what magic 
+        constants are to regular code" 
+                                 - Andrei Alexandrescu 
+//---------------------------------------------------------*/

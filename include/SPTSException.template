@@ -1,0 +1,615 @@
+#include "GenericAlgorithms.h"
+
+//=====================================================================================//
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Changes <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<//
+//=====================================================================================//
+/* 
+   ==============
+   05/04/05, sjn,
+   ==============
+    Added DUTCriticalBase struct to SPTSExceptions namespace.
+    Added Prepend() to ExceptionBase.
+    Added ID enumeration value to SomeException<>.
+    Removed BadInhibitTag from DUTExceptionTags.
+    Added member variable id_ and Added GetExceptionID() const to ExceptionBase struct.
+      Changed GetExceptionInfo() to a const member function.
+*/
+//=====================================================================================//
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Changes <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<//
+//=====================================================================================//
+
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+namespace SPTSExceptions {
+
+    namespace { // unnamed 
+        enum {
+            DUTEXCEPTION   = 0,
+            MINOREXCEPTION = 1000,
+            MAJOREXCEPTION = 2000,
+            UIEXCEPTION    = 3000
+        };
+    }
+
+    //====================================
+    // ExceptionBase - grandpop exception
+    //====================================
+    struct ExceptionBase : public std::exception {    
+        ExceptionBase() : s_(new std::stringstream), id_(-1) { 
+            (*s_) << "Unknown Exception" << std::endl << "ErrorNumber: " << id_;
+        }
+        ExceptionBase(const std::string& name, int eNumber) 
+                                           : s_(new std::stringstream), id_(eNumber) {
+            (*s_) << Prepend() + name << std::endl 
+                  << "ErrorNumber: " << eNumber;       
+        }            
+        ExceptionBase(const std::string& message, const std::string& name, int eNumber)
+                                     : s_(new std::stringstream), id_(eNumber) { 
+            (*s_) <<  Prepend() + name;
+            (*s_) <<  std::endl;
+            (*s_) <<  message;
+            (*s_) <<  std::endl;
+            (*s_) << "ErrorNumber: ";
+            (*s_) <<  eNumber;
+        }
+        ExceptionBase(const std::string& message1, 
+                      const std::string& message2, 
+                      const std::string& name,
+                      int eNumber) 
+                                     : s_(new std::stringstream), id_(eNumber) {
+            (*s_) <<  Prepend() + name;
+            (*s_) <<  std::endl;
+            (*s_) <<  message1;
+            (*s_) <<  std::endl;
+            (*s_) <<  message2;
+            (*s_) <<  std::endl;
+            (*s_) << "Error Number: " << eNumber;
+        }  
+        ExceptionBase(const ExceptionBase& eb)
+                                 : s_(new std::stringstream), id_(eb.id_) {
+            (*s_) << eb.s_->str();
+        }    
+        ExceptionBase& operator=(const ExceptionBase& eb) {
+            s_.reset(new std::stringstream);
+            (*s_) << eb.s_->str();
+            id_ = eb.id_;
+            return(*this);
+        }
+        
+        std::string GetExceptionInfo() const {
+            return(s_->str());
+        }
+
+        long GetExceptionID() const {
+            return(id_);
+        }
+        
+        static std::string Prepend() {
+            return("ErrorType: ");
+        }
+
+        virtual ~ExceptionBase() { /* */ }  
+
+    private:
+        std::auto_ptr<std::stringstream> s_;
+        long id_;
+    };
+    
+    //==================
+    // MinorStationBase 
+    //==================
+    struct MinorStationBase : public ExceptionBase {
+        typedef ExceptionBase BaseExcType;
+        enum { Value = MINOREXCEPTION };
+         
+        MinorStationBase() : BaseExcType() 
+        { /* */ }
+        MinorStationBase(const std::string& name, int eNumber) 
+                      : BaseExcType(name, eNumber + MINOREXCEPTION) { /* */ }
+        MinorStationBase(const std::string& message, 
+                         const std::string& name,
+                         int eNumber) 
+                      : BaseExcType(message, name, eNumber + MINOREXCEPTION) 
+        { /* */ }
+        MinorStationBase(const std::string& message1, 
+                         const std::string& message2, 
+                         const std::string& name, 
+                         int eNumber)
+                      : BaseExcType(message1, message2, name, eNumber + MINOREXCEPTION)
+        { /* */ }
+        
+        virtual ~MinorStationBase() { /* */ }
+    };
+
+    //==================
+    // MajorStationBase 
+    //==================
+    struct MajorStationBase : public ExceptionBase {
+        typedef ExceptionBase BaseExcType;
+        enum { Value = MAJOREXCEPTION };
+       
+        MajorStationBase() : BaseExcType() 
+        { /* */ }
+        MajorStationBase(const std::string& name, int eNumber) 
+                      : BaseExcType(name, eNumber + MAJOREXCEPTION) { /* */ }
+        MajorStationBase(const std::string& message, 
+                         const std::string& name,
+                         int eNumber) 
+                      : BaseExcType(message, name, eNumber + MAJOREXCEPTION) 
+        { /* */ }
+        MajorStationBase(const std::string& message1, 
+                         const std::string& message2, 
+                         const std::string& name,
+                         int eNumber)
+                      : BaseExcType(message1, message2, name, eNumber + MAJOREXCEPTION)
+        { /* */ }
+        
+        virtual ~MajorStationBase() { /* */ }
+    };
+
+    //=========
+    // DUTBase 
+    //=========
+    struct DUTBase : public ExceptionBase {
+        typedef ExceptionBase BaseExcType;
+        enum { Value = DUTEXCEPTION };
+      
+        DUTBase() : BaseExcType() 
+        { /* */ }
+        DUTBase(const std::string& message, int eNumber) 
+                                        : BaseExcType(message, eNumber + DUTEXCEPTION) 
+        { /* */ }
+        DUTBase(const std::string& message1, const std::string& message2, int eNumber)
+                           : BaseExcType(message1, message2, eNumber + DUTEXCEPTION) 
+        { /* */ }
+        DUTBase(const std::string& message1, const std::string& message2,
+                const std::string& message3, int eNumber)
+                     : BaseExcType(message1, message2, message3, eNumber + DUTEXCEPTION)
+        { /* */ }
+        
+        virtual ~DUTBase() { /* */ }
+    };
+    
+    //=================
+    // DUTCriticalBase 
+    //=================
+    struct DUTCriticalBase : public DUTBase {
+        typedef DUTBase BaseExcType;
+        enum { Value = DUTEXCEPTION };
+      
+        DUTCriticalBase() : BaseExcType() 
+        { /* */ }
+        DUTCriticalBase(const std::string& message, int eNumber) 
+                                        : BaseExcType(message, eNumber + DUTEXCEPTION)
+        { /* */ }
+        DUTCriticalBase(const std::string& message1,
+                        const std::string& message2, int eNumber)
+                           : BaseExcType(message1, message2, eNumber + DUTEXCEPTION)
+        { /* */ }
+        
+        virtual ~DUTCriticalBase() { /* */ }
+    };
+    
+    //===============
+    // UserInputBase 
+    //===============
+    struct UserInputBase : public ExceptionBase {
+        typedef ExceptionBase BaseExcType;
+        enum { Value = UIEXCEPTION };
+    
+        UserInputBase() : BaseExcType() 
+        { /* */ }
+        UserInputBase(const std::string& message, int eNumber) 
+                                        : BaseExcType(message, eNumber + UIEXCEPTION)
+        { /* */ }
+        UserInputBase(const std::string& message1, const std::string& message2, 
+                      int eNumber)
+                            : BaseExcType(message1, message2, eNumber + UIEXCEPTION)
+        { /* */ }
+
+        virtual ~UserInputBase() { /* */ }
+    };
+
+} // namespace SPTSExceptions
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+namespace ExceptionTypes {
+
+    //=====================
+    // SomeException Class
+    //=====================
+    template <int ErrorNumber, typename BaseType, typename TagType>
+    struct SomeException : public BaseType {
+        enum { ID = ErrorNumber };
+
+        SomeException() : BaseType(TagType::Name(), ErrorNumber) { /* */ }
+        SomeException(const std::string& message) 
+                            : BaseType(message, TagType::Name(), ErrorNumber) { /* */ }
+        SomeException(const std::string& message1,
+                      const std::string& message2) 
+                 : BaseType(message1, message2, TagType::Name(), ErrorNumber) { /* */ }
+
+        static std::string GetDialog() {
+            return(TagType::Name());
+        }
+        static int GetValue() {
+            return(BaseType::Value + ErrorNumber);
+        }
+    };
+    
+} // namespace ExceptionTypes
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+namespace ExceptionTags {    
+
+    /******************************************/
+    namespace MinorExceptionTags {
+         
+        struct LocalArchiveTag {
+            static std::string Name() {
+                return("Bad Archive - Data archived locally");
+            }
+        };  
+    
+        struct NoLimitsFoundTag {
+            static std::string Name() {
+                return("No Limits found for this DUT.  Cannot Test.");
+            }
+        };
+        
+        struct NoVariablesFoundTag {
+            static std::string Name() {
+                return("No Variables found for this DUT. Cannot Test.");
+            }
+        };
+    
+        struct OrientationTag {
+            static std::string Name() {
+                return("DUT Orientation");
+            }
+        };
+    
+        struct WrongFixtureTag {
+            static std::string Name() {
+                return("Wrong Fixture");
+            }
+        };
+        
+        struct WrongRevisionTag {
+            static std::string Name() {
+                return("Wrong Revision Detected");
+            }
+        };
+    }
+
+    /******************************************/
+    namespace StationExceptionTags { // Major station exceptions 
+        struct BadArgTag {
+            static std::string Name() {
+                return("Bad Argument");
+            }
+        };
+        
+        struct BadClockTag {
+            static std::string Name() {
+                return("Bad System Clock");
+            }
+        };
+ 
+        struct BadCommandTag {
+            static std::string Name() {
+                return("Bad Command");
+            }
+        };
+        
+        struct BadIinShuntValueTag {
+            static std::string Name() {
+                return("Wrong Iin Shunt Value Selected");
+            }
+        };
+
+        struct BadRtnValueTag { 
+            static std::string Name() {
+                return("Bad Return Value");
+            }
+        };       
+        
+        struct BlownFuseTag {
+            static std::string Name() {
+                return("Blown Input Fuse");
+            }
+        };
+
+        struct BusErrorTag {
+            static std::string Name() {
+                return("Bus Communication Error"); 
+            }
+        };
+
+        struct ContainerStateTag {
+            static std::string Name() {
+                return("Container State Problem");
+            }
+        };
+        
+		struct DeltaFileTag {
+			static std::string Name() {
+				return("Delta File");
+			}
+		};        
+        
+        struct DivideByZeroTag {
+            static std::string Name() {
+                return("Divide By Zero");
+            };
+        };                
+
+        struct FileErrorTag {
+            static std::string Name() {
+                return("Text File Error Detected");
+            }
+        };
+        
+        struct FileFormatTag {
+            static std::string Name() {
+                return("File Formatting Error");
+            }
+        };        
+        
+        struct InfiniteLoopTag {
+            static std::string Name() {
+                return("Infinite Loop Detected");
+            }
+        };
+        
+        struct InfiniteRecursionTag {
+            static std::string Name() {
+                return("Infinite Recursion Detected");
+            }
+        };
+        
+        struct InhibitCurrentHighTag {
+            static std::string Name() {
+                return("Input Current Too High to select BIGOHM resistor on the fly");
+            }
+        };
+
+        struct InstrumentErrorTag {
+            static std::string Name() {
+                return("Instrument Error");
+            }
+        };
+    
+        struct InstrumentSetupTag {
+            static std::string Name() {
+                return("Instrument Setup Error");
+            }
+        };
+        
+        struct InstrumentTimeoutTag {
+            static std::string Name() {
+                return("Instrument Timeout");
+            }
+        };     
+
+        struct IRResetErrorTag {
+            static std::string Name() {
+                return("Station Reset Error");
+            }
+        };       
+        
+        struct MeasurementErrorTag {
+            static std::string Name() {
+                return("Measurement Problem");
+            }
+        };
+        
+        struct MeasurementTimeoutTag {
+            static std::string Name() {
+                return("Measurement Timeout");
+            }
+        };
+
+        struct NoArchiveTag {
+            static std::string Name() {
+                std::stringstream s;
+                s << "Data Archiving Problem.  ";
+                s << "Contact Test Engineering Immediately.  ";
+                s << "Do NOT test until this problem is solved!";
+                return(s.str());
+            }
+        };
+        
+        struct NoFileInfoTag {
+            static std::string Name() {
+                return("No File Information Found");
+            }
+        };
+        
+        struct NoFileTag {
+            static std::string Name() {
+                return("No File Found");
+            }
+        };
+ 
+        struct OutOfRangeTag {
+            static std::string Name() { 
+                return("Out of Range Error");
+            }
+        };
+        
+        struct ProgramErrorTag {
+            static std::string Name() {
+                return("Program Flaw Detected");
+            }
+        };
+        
+        struct RescaleErrorTag {
+            static std::string Name() {
+                return("Instrument Re-Scaling Problem");
+            }
+        };
+
+        struct ScopeMeasureTag {
+            static std::string Name() {
+                return("Scope Measurement Problem");
+            }
+        };
+
+        struct ScopeSetTag {
+            static std::string Name() {
+                return("Scope Set Problem");
+            }
+        };
+        
+        struct TemperatureOverflowTag {
+            static std::string Name() {
+                return("Temperature Overflow");
+            }
+        };        
+        
+        struct TemperatureTimeoutTag {
+            static std::string Name() {
+                return("Temperature System Timeout");
+            }
+        };
+
+        struct UndefinedTag {
+            static std::string Name() {
+                return("Undefined");
+            }
+        };
+
+        struct UnexpectedStateTag {
+            static std::string Name() {
+                return("Unexpected State");
+            }
+        };
+
+        struct UnknownTag {
+            static std::string Name() {
+                return("Unknown Exception");
+            }
+        };
+
+        struct UnsafeConditionTag  {
+            static std::string Name() {
+                return("UNSAFE CONDITION DETECTED!!!!");
+            }
+        };
+        
+        struct VinToleranceTag {
+            static std::string Name() {
+                return("Vin not within its tolerance");
+            }
+        };
+    } // namespace ExceptionTags::StationExceptionTags
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+    namespace DUTExceptionTags {    
+        struct HighIinTag {
+            static std::string Name() {
+                return("High Iin DC");
+            }
+        };
+        
+		struct JumperPullTag {
+			static std::string Name() {
+				return("Jumper Pull Info Insufficient");
+			}
+		};          
+        
+        struct NoTripPointTag {
+            static std::string Name() {
+                return("No Trip Point Found");
+            } 
+        };
+        
+        struct Overshoot2BigTag {
+            static std::string Name() {
+                return("DUT Overshoot Too Large");
+            }
+        };
+        
+		struct SevereOscillationTag {
+			static std::string Name() {
+			    std::string name = "Severe DUT Oscillation detected";
+			    name += " - cannot make OScope measurement";
+				return(name);
+			}
+		};         
+         
+        struct TestAbortedTag {
+            static std::string Name() {
+                return("Test Aborted");
+            }
+        };
+        
+        struct UndershootTag {
+            static std::string Name() {
+                return("DUT Output < Nominal");
+            }
+        };
+
+        struct VoutAtFreqTag {
+            static std::string Name() { 
+                return("Vout Bad at Frequency");
+            }
+        };
+    } // namespace ExceptionTags::DUTExceptionTags
+    
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+            
+    namespace UserInterfaceTags {
+        struct NoScreenTag {
+            static std::string Name() {
+                return("No User Interface Screen Available");
+            }
+        };
+
+        struct InterfaceErrorTag {
+            static std::string Name() {
+                return("User Interface Error Detected");
+            }
+        };
+        
+    } // namespace ExceptionTags::UserInterfaceTags
+
+} // namespace ExceptionTags
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+
+/*---------------------------------------------------------//
+       "Hardcoded types are to generic code what magic 
+        constants are to regular code" 
+                                 - Andrei Alexandrescu 
+//---------------------------------------------------------*/
+

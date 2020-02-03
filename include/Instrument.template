@@ -1,0 +1,100 @@
+// Implementation File for Instrument.h
+
+// Files included
+#include "Assertion.h"
+#include "Instrument.h"
+#include "SingletonType.h"
+#include "SPTSException.h"
+
+//=====================================================================================//
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Changes <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<//
+//=====================================================================================//
+/* 
+   ==============  
+   03/03/05, sjn,
+   ==============
+     Added 3rd parameter to queryInstr() to pause if command parameter is non-empty.
+      The pause should be after command is sent and before actual query.  Defaulted
+      to zero.  Time is in seconds.  Should not be used for GPIB most modern bus types:
+      just needed for I2C classes.
+*/
+//=====================================================================================//
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Changes <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<//
+//=====================================================================================//
+
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+namespace SPTSInstrument {
+template <typename BusType>
+BusType Instrument<BusType>::bus_;
+
+template <typename BusType>
+std::string Instrument<BusType>::busError_ = "";
+
+//================
+// commandInstr() 
+//================
+template <typename BusType>
+bool Instrument<BusType>::commandInstr(long address, const std::string& command) {
+    typedef StationExceptionTypes::BusError BusError;
+    bus_.talk(address, command);    
+    return(true);
+}
+
+//==============
+// getAddress()
+//==============
+template <typename BusType>
+long Instrument<BusType>::getAddress(InstrumentTypes::Types instrType) {
+    typedef StationExceptionTypes::FileError FileError;
+	long add = SingletonType<InstrumentFile>::Instance()->GetAddress(instrType);
+    Assert<FileError>((add > 0) && (add < bus_.maxAddress()), name());
+	return(add);
+}
+
+//========
+// name()
+//========
+template <typename BusType>
+std::string Instrument<BusType>::name() {
+    return("Instrument Base");
+}
+
+//==============
+// queryInstr()
+//==============
+template <typename BusType>
+std::string Instrument<BusType>::queryInstr(long address, const std::string& query,
+                                            double pauseIfQueryNotEmpty) {
+	return(bus_.query(address, query, pauseIfQueryNotEmpty));
+}
+
+//================
+// WhatBusError()
+//================
+template <typename BusType>
+std::string Instrument<BusType>::WhatBusError() {
+    if ( busError_.empty() ) 
+        busError_ = bus_.whatError();
+    std::string toRtn = busError_;
+    busError_ = "";
+    return(toRtn);
+}
+
+} // namespace SPTSInstrument
+
+/***************************************************************************************/
+////////////////////////////////////CRANE INTERPOINT/////////////////////////////////////
+//////////////////////////////////SPACE-POWER DIVISION///////////////////////////////////
+/***************************************************************************************/
+
+
+/*---------------------------------------------------------//
+       "Hardcoded types are to generic code what magic 
+        constants are to regular code" 
+                                 - Andrei Alexandrescu 
+//---------------------------------------------------------*/
